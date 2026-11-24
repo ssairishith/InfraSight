@@ -277,20 +277,27 @@ Guidelines:
 - Labor: typically 1-4 days depending on severity
 - Equipment rental: ₹500 (small) to ₹4500 (large machinery) per day`;
 
-    const model = process.env.GROQ_MODEL || "llama-3.3-70b-versatile";
-    const response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${apiKey}`,
-      },
-      body: JSON.stringify({
-        model,
-        messages: [{ role: "user", content: prompt }],
-        temperature: 0.3,
-        max_tokens: 1000,
-      }),
-    });
+// Use the helper defined at the top of the file: fetchWithRetry
+const model = process.env.GROQ_MODEL || "llama-3.3-70b-versatile";
+
+const response = await fetchWithRetry(
+  "https://api.groq.com/openai/v1/chat/completions",
+  {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${apiKey}`,
+    },
+    body: JSON.stringify({
+      model,
+      messages: [{ role: "user", content: prompt }],
+      temperature: 0.3,
+      max_tokens: 1000,
+    }),
+  },
+  // retry options – 3 attempts, exponential back‑off, 10 s timeout each
+  { retries: 3, baseDelayMs: 500, timeoutMs: 10_000 }
+);
 
     if (!response.ok) {
       const err = await response.json();
