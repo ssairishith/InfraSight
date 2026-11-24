@@ -5,6 +5,10 @@ import "leaflet/dist/leaflet.css";
 import Toast from "../components/Toast";
 import socket from "../socket";
 
+socket.on("connect_error", (err) => {
+  console.error("Socket.IO connection error:", err.message);
+});
+
 const BACKEND = import.meta.env.VITE_BACKEND_URL || "http://localhost:5000";
 
 // Fix default marker icon broken by webpack/vite

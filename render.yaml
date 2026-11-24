@@ -29,6 +29,10 @@ services:
         sync: false # Set this in Render Dashboard
       - key: AI_API_KEY
         sync: false # Set this in Render Dashboard (Groq)
+    routes:
+      - type: rewrite
+        source: /socket.io/*
+        destination: /socket.io/*
 
   # 3. The Frontend (Static Site)
   - type: web
