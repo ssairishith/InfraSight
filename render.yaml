@@ -28,6 +28,8 @@ services:
         sync: false
       - key: AI_API_KEY
         sync: false
+      - key: REDIS_URL         # <-- new env var, will be populated automatically
+        sync: false
 
   # 3. Frontend (Static site)
   - type: web
@@ -43,3 +45,18 @@ services:
       - type: rewrite
         source: /*
         destination: /index.html
+
+  - type: worker
+    name: infrasight-queue
+    env: python
+    rootDir: queue-worker          # <-- path we will create
+    plan: free
+    buildCommand: pip install -r requirements.txt
+    startCommand: python worker.py
+    envVars:
+      - key: REDIS_URL            # receives the same value as backend
+        sync: false
+      - key: ANALYZER_URL         # worker needs to call the AI analyzer
+        sync: false
+      - key: AI_API_KEY           # for Groq
+        sync: false
