@@ -1,34 +1,34 @@
 services:
   # 1. AI Analyzer (Python)
   - type: web
-    name: infrasight-ai
-    env: python
-    rootDir: ai-analyzer
-    plan: free
-    buildCommand: pip install -r requirements.txt
-    startCommand: gunicorn app:app -w 1 -t 300   # 5‑minute timeout
-    envVars:
-      - key: ANALYZER_PORT
-        value: 10000   # Render’s default port
+  name: infrasight-ai
+  env: python
+  rootDir: ai-analyzer
+  plan: free
+  buildCommand: pip install -r requirements.txt
+  startCommand: gunicorn app:app
+  envVars:
+    - key: ANALYZER_PORT
+      value: 10000 # Render's default port
 
   # 2. Backend (Node.js)
   - type: web
-    name: infrasight-backend
-    env: node
-    rootDir: backend
-    plan: free
-    buildCommand: npm install
-    startCommand: npm start
-    envVars:
-      - key: ANALYZER_URL
-        sync: false
-      - key: SUPABASE_URL
-        sync: false
-      - key: SUPABASE_KEY
-        sync: false
-      - key: AI_API_KEY
-        sync: false
-      - key: REDIS_URL         # <-- new env var, will be populated automatically
+  name: infrasight-backend
+  env: node
+  rootDir: backend
+  plan: free
+  buildCommand: npm install
+  startCommand: npm start
+  envVars:
+    - key: ANALYZER_URL
+      value: http://infrasight-ai:10000   # ← use internal DNS, no Cloudflare
+    - key: SUPABASE_URL
+      sync: false
+    - key: SUPABASE_KEY
+      sync: false
+    - key: AI_API_KEY
+      sync: false
+    - key: REDIS_URL         # <-- new env var, will be populated automatically
         sync: false
 
   # 3. Frontend (Static site)
