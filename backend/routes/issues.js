@@ -278,7 +278,7 @@ Guidelines:
 - Equipment rental: ₹500 (small) to ₹4500 (large machinery) per day`;
 
 // Use the helper defined at the top of the file: fetchWithRetry
-const model = process.env.GROQ_MODEL || "llama-3.3-70b-versatile";
+const model = process.env.GROQ_MODEL;
 
 const response = await fetchWithRetry(
   "https://api.groq.com/openai/v1/chat/completions",
