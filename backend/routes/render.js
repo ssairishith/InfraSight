@@ -1,7 +1,7 @@
 // backend/routes/render.js
 const express = require('express');
 const router = express.Router();
-const fetch = require('node-fetch');   // built‑in in Node ≥18, otherwise npm i node-fetch
+
 
 // Helper: simple fetch with timeout (optional)
 async function fetchWithTimeout(url, opts = {}, timeoutMs = 5000) {
