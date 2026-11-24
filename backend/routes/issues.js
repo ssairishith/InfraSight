@@ -3,7 +3,7 @@ const router = express.Router();
 const { createClient } = require("@supabase/supabase-js");
 
 // ─── Helper: fetch with exponential backoff + per-request timeout ──
-async function fetchWithRetry(url, options = {}, { retries = 3, baseDelayMs = 300, timeoutMs = 10_000 } = {}) {
+async function fetchWithRetry(url, options = {}, { retries = 3, baseDelayMs = 300, timeoutMs = 10_000, retryStatuses = [] } = {}) {
   let lastErr;
   for (let attempt = 0; attempt < retries; attempt++) {
     const controller = new AbortController();
@@ -11,6 +11,14 @@ async function fetchWithRetry(url, options = {}, { retries = 3, baseDelayMs = 30
     try {
       const res = await fetch(url, { ...options, signal: controller.signal });
       clearTimeout(timer);
+      if (retryStatuses.includes(res.status) && attempt < retries - 1) {
+        const ra = Number(res.headers.get("retry-after"));
+        const delay = Number.isFinite(ra) && ra > 0 ? Math.min(ra, 20) * 1000 : baseDelayMs * Math.pow(2, attempt);
+        console.warn(`[retry] ${url} returned ${res.status} – retrying in ${delay}ms`);
+        await res.arrayBuffer().catch(() => {});
+        await new Promise((r) => setTimeout(r, delay));
+        continue;
+      }
       return res; // let caller check res.ok
     } catch (err) {
       clearTimeout(timer);
@@ -167,7 +175,7 @@ router.post("/analyze", async (req, res) => {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ image, roadType: roadType || "arterial" }),
         },
-        { retries: 3, baseDelayMs: 300, timeoutMs: 10_000 }
+        { retries: 4, baseDelayMs: 2000, timeoutMs: 60_000, retryStatuses: [429, 502, 503, 504] }
       );
     } catch (downstreamErr) {
       console.error("Analyzer service unreachable after retries:", downstreamErr.message);
@@ -180,7 +188,11 @@ router.post("/analyze", async (req, res) => {
 
     if (!analyzerResponse.ok) {
       const errBody = await analyzerResponse.text().catch(() => "");
-      console.error(`Analyzer returned ${analyzerResponse.status}:`, errBody);
+      console.error(
+        `Analyzer returned ${analyzerResponse.status}:`, errBody.slice(0, 300),
+        "| origin:", analyzerResponse.headers.get("x-render-origin-server"),
+        "| retry-after:", analyzerResponse.headers.get("retry-after")
+      );
       return res.status(502).json({
         error: `Analyzer service returned an error (${analyzerResponse.status}).`,
         detail: errBody,
@@ -278,7 +290,7 @@ Guidelines:
 - Equipment rental: ₹500 (small) to ₹4500 (large machinery) per day`;
 
 // Use the helper defined at the top of the file: fetchWithRetry
-const model = process.env.GROQ_MODEL;
+const model = process.env.GROQ_MODEL || "llama-3.3-70b-versatile";
 
 const response = await fetchWithRetry(
   "https://api.groq.com/openai/v1/chat/completions",
@@ -296,7 +308,7 @@ const response = await fetchWithRetry(
     }),
   },
   // retry options – 3 attempts, exponential back‑off, 10 s timeout each
-  { retries: 3, baseDelayMs: 500, timeoutMs: 10_000 }
+  { retries: 3, baseDelayMs: 1500, timeoutMs: 20_000, retryStatuses: [429, 500, 502, 503] }
 );
 
     if (!response.ok) {
