@@ -1,5 +1,5 @@
 services:
-  # 1. The AI Analyzer (Python)
+  # 1. AI Analyzer (Python)
   - type: web
     name: infrasight-ai
     env: python
@@ -9,9 +9,9 @@ services:
     startCommand: gunicorn app:app
     envVars:
       - key: ANALYZER_PORT
-        value: 10000 # Render's default port
+        value: 10000   # Render’s default port
 
-  # 2. The Backend (Node.js)
+  # 2. Backend (Node.js)
   - type: web
     name: infrasight-backend
     env: node
@@ -22,19 +22,14 @@ services:
     envVars:
       - key: ANALYZER_URL
         sync: false
-          
       - key: SUPABASE_URL
-        sync: false # Set this in Render Dashboard
+        sync: false
       - key: SUPABASE_KEY
-        sync: false # Set this in Render Dashboard
+        sync: false
       - key: AI_API_KEY
-        sync: false # Set this in Render Dashboard (Groq)
-    routes:
-      - type: rewrite
-        source: /socket.io/*
-        destination: /socket.io/*
+        sync: false
 
-  # 3. The Frontend (Static Site)
+  # 3. Frontend (Static site)
   - type: web
     name: infrasight
     env: static
@@ -43,8 +38,7 @@ services:
     staticPublishPath: ./dist
     envVars:
       - key: VITE_BACKEND_URL
-        sync: false
-          
+        sync: false   # set in Render UI, not in the file
     routes:
       - type: rewrite
         source: /*
