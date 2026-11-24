@@ -1,37 +1,35 @@
 services:
-  # 1. AI Analyzer (Python)
+  # 1. The AI Analyzer (Python)
   - type: web
-  name: infrasight-ai
-  env: python
-  rootDir: ai-analyzer
-  plan: free
-  buildCommand: pip install -r requirements.txt
-  startCommand: gunicorn app:app
-  envVars:
-    - key: ANALYZER_PORT
-      value: 10000 # Render's default port
+    name: infrasight-ai
+    env: python
+    rootDir: ai-analyzer
+    plan: free
+    buildCommand: pip install -r requirements.txt
+    startCommand: gunicorn app:app -w 1 -t 300
+    envVars:
+      - key: ANALYZER_PORT
+        value: 10000
 
-  # 2. Backend (Node.js)
+  # 2. The Backend (Node.js)
   - type: web
-  name: infrasight-backend
-  env: node
-  rootDir: backend
-  plan: free
-  buildCommand: npm install
-  startCommand: npm start
-  envVars:
-    - key: ANALYZER_URL
-      value: http://infrasight-ai:10000   # ← use internal DNS, no Cloudflare
-    - key: SUPABASE_URL
-      sync: false
-    - key: SUPABASE_KEY
-      sync: false
-    - key: AI_API_KEY
-      sync: false
-    - key: REDIS_URL         # <-- new env var, will be populated automatically
+    name: infrasight-backend
+    env: node
+    rootDir: backend
+    plan: free
+    buildCommand: npm install
+    startCommand: npm start
+    envVars:
+      - key: ANALYZER_URL
+        sync: false   # Set this in Render Dashboard to your AI analyzer public URL
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_KEY
+        sync: false
+      - key: AI_API_KEY
         sync: false
 
-  # 3. Frontend (Static site)
+  # 3. The Frontend (Static Site)
   - type: web
     name: infrasight
     env: static
@@ -40,23 +38,8 @@ services:
     staticPublishPath: ./dist
     envVars:
       - key: VITE_BACKEND_URL
-        sync: false   # set in Render UI, not in the file
+        sync: false
     routes:
       - type: rewrite
         source: /*
         destination: /index.html
-
-  - type: worker
-    name: infrasight-queue
-    env: python
-    rootDir: queue-worker          # <-- path we will create
-    plan: free
-    buildCommand: pip install -r requirements.txt
-    startCommand: python worker.py
-    envVars:
-      - key: REDIS_URL            # receives the same value as backend
-        sync: false
-      - key: ANALYZER_URL         # worker needs to call the AI analyzer
-        sync: false
-      - key: AI_API_KEY           # for Groq
-        sync: false
