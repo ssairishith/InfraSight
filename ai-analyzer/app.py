@@ -30,13 +30,14 @@ def before_request():
 
 @app.route("/health", methods=["GET"])
 def health():
-    """Health check endpoint."""
-    status = "ok" if analyzer is not None else "degraded"
+    """Health check endpoint – always 200 (good for Render)."""
+    ready = analyzer is not None
     return jsonify({
-        "status": status,
+        "status": "ok" if ready else "degraded",
         "service": "pothole-analyzer",
-        "analyzer_ready": analyzer is not None,
-    }), 200 if status == "ok" else 503
+        "analyzer_ready": ready,
+        "port": os.getenv("ANALYZER_PORT") or os.getenv("PORT") or 5001,
+    }), 200
 
 @app.route("/analyze", methods=["POST"])
 def analyze():
@@ -95,7 +96,14 @@ def index():
     })
 
 if __name__ == "__main__":
-    port = int(os.environ.get("PORT", 5001))
+    # Render-free-tier exposes the port in `ANALYZER_PORT`.
+    # Fall back to the generic `PORT` (used by some local setups)
+    # and finally to the historic default 5001 for absolute safety.
+    port = int(
+        os.getenv("ANALYZER_PORT")
+        or os.getenv("PORT")
+        or 5001
+    )
     logger.info(f"Starting analyzer service on port {port}")
-    init_analyzer()  # eagerly initialize so first request isn't slow
+    init_analyzer()  # eager init so first request isn't slow
     app.run(host="0.0.0.0", port=port, debug=False)
