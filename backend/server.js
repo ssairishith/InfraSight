@@ -26,6 +26,8 @@ app.set("io", io);
 require("./sockets/index")(io);
 
 app.use("/issues", require("./routes/issues"));
+const renderRouter = require("./routes/render");
+app.use("/render", renderRouter);
 app.get("/", (req, res) => res.json({ status: "InfraSight API running" }));
 
 (async () => {
